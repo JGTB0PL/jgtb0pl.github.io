@@ -1,0 +1,236 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 98vh;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+             /* position absolute is important and the container has to be relative or absolute as well. */
+          div.popup {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 display:none;
+                 background-color:#f5f4ed;
+                 -moz-border-radius: 3px;
+                 -webkit-border-radius: 3px;
+                 border-radius: 3px;
+                 border: 1px solid #808074;
+                 box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+          }
+
+          /* hide the original tooltip */
+          .vis-tooltip {
+            display:none;
+          }
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#90EE90", "id": "yyU_1JD2wuA", "label": "A Date with Markiplier", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/yyU_1JD2wuA\u0027 target=\u0027_blank\u0027\u003eA Date with Markiplier\u003c/a\u003e"}, {"color": null, "id": "23jTMFsrWdg", "label": "DON\u0027T PAY", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/23jTMFsrWdg\u0027 target=\u0027_blank\u0027\u003eDON\u0027T PAY\u003c/a\u003e"}, {"color": null, "id": "ahh3I6jP2sA", "label": "DON\u0027T ATTACK", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/ahh3I6jP2sA\u0027 target=\u0027_blank\u0027\u003eDON\u0027T ATTACK\u003c/a\u003e"}, {"color": null, "id": "Jl9XIOZJ_pI", "label": "DIG", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Jl9XIOZJ_pI\u0027 target=\u0027_blank\u0027\u003eDIG\u003c/a\u003e"}, {"color": null, "id": "5Cu5rwRVkBc", "label": "PICK LOCK", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/5Cu5rwRVkBc\u0027 target=\u0027_blank\u0027\u003ePICK LOCK\u003c/a\u003e"}, {"color": null, "id": "n-OUMryuYis", "label": "STAY TOGETHER", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/n-OUMryuYis\u0027 target=\u0027_blank\u0027\u003eSTAY TOGETHER\u003c/a\u003e"}, {"color": null, "id": "2URDTFdgEO8", "label": "MORE?", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/2URDTFdgEO8\u0027 target=\u0027_blank\u0027\u003eMORE?\u003c/a\u003e"}, {"color": null, "id": "BvdtC0sMHlc", "label": "EXIT", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/BvdtC0sMHlc\u0027 target=\u0027_blank\u0027\u003eEXIT\u003c/a\u003e"}, {"color": null, "id": "yoHamTR5n1A", "label": "SPLIT UP", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/yoHamTR5n1A\u0027 target=\u0027_blank\u0027\u003eSPLIT UP\u003c/a\u003e"}, {"color": null, "id": "vO0wz9THGq0", "label": "ATTACK", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/vO0wz9THGq0\u0027 target=\u0027_blank\u0027\u003eATTACK\u003c/a\u003e"}, {"color": null, "id": "30sVvojkvqw", "label": "SHINY!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/30sVvojkvqw\u0027 target=\u0027_blank\u0027\u003eSHINY!\u003c/a\u003e"}, {"color": null, "id": "o4-2iNTxu6E", "label": "ROAD", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/o4-2iNTxu6E\u0027 target=\u0027_blank\u0027\u003eROAD\u003c/a\u003e"}, {"color": null, "id": "a6C9jh9kB9Q", "label": "TUNA", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/a6C9jh9kB9Q\u0027 target=\u0027_blank\u0027\u003eTUNA\u003c/a\u003e"}, {"color": null, "id": "lcrCkm2ED8M", "label": "PBJ", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/lcrCkm2ED8M\u0027 target=\u0027_blank\u0027\u003ePBJ\u003c/a\u003e"}, {"color": null, "id": "D5CXycD8gnc", "label": "PAY", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/D5CXycD8gnc\u0027 target=\u0027_blank\u0027\u003ePAY\u003c/a\u003e"}, {"color": null, "id": "q8eg2DypRC8", "label": "HORROR", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/q8eg2DypRC8\u0027 target=\u0027_blank\u0027\u003eHORROR\u003c/a\u003e"}, {"color": null, "id": "5L40rXqHsSk", "label": "FREEDOM!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/5L40rXqHsSk\u0027 target=\u0027_blank\u0027\u003eFREEDOM!\u003c/a\u003e"}, {"color": null, "id": "-cYt1cav9f0", "label": "RIGHT", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/-cYt1cav9f0\u0027 target=\u0027_blank\u0027\u003eRIGHT\u003c/a\u003e"}, {"color": null, "id": "veNHrGg4Gks", "label": "LEFT", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/veNHrGg4Gks\u0027 target=\u0027_blank\u0027\u003eLEFT\u003c/a\u003e"}, {"color": null, "id": "Utvtf8rCY4g", "label": "ROMANCE", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Utvtf8rCY4g\u0027 target=\u0027_blank\u0027\u003eROMANCE\u003c/a\u003e"}, {"color": null, "id": "D0D8p9iaUEo", "label": "LEAVE", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/D0D8p9iaUEo\u0027 target=\u0027_blank\u0027\u003eLEAVE\u003c/a\u003e"}, {"color": null, "id": "RE14kkYVu5I", "label": "NO", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/RE14kkYVu5I\u0027 target=\u0027_blank\u0027\u003eNO\u003c/a\u003e"}, {"color": null, "id": "H6tlXqFI-EA", "label": "YES", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/H6tlXqFI-EA\u0027 target=\u0027_blank\u0027\u003eYES\u003c/a\u003e"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "yyU_1JD2wuA", "to": "D5CXycD8gnc"}, {"arrows": "to", "from": "yyU_1JD2wuA", "to": "23jTMFsrWdg"}, {"arrows": "to", "from": "23jTMFsrWdg", "to": "vO0wz9THGq0"}, {"arrows": "to", "from": "23jTMFsrWdg", "to": "ahh3I6jP2sA"}, {"arrows": "to", "from": "ahh3I6jP2sA", "to": "5Cu5rwRVkBc"}, {"arrows": "to", "from": "ahh3I6jP2sA", "to": "Jl9XIOZJ_pI"}, {"arrows": "to", "from": "5Cu5rwRVkBc", "to": "yoHamTR5n1A"}, {"arrows": "to", "from": "5Cu5rwRVkBc", "to": "n-OUMryuYis"}, {"arrows": "to", "from": "n-OUMryuYis", "to": "BvdtC0sMHlc"}, {"arrows": "to", "from": "n-OUMryuYis", "to": "2URDTFdgEO8"}, {"arrows": "to", "from": "BvdtC0sMHlc", "to": "5Cu5rwRVkBc"}, {"arrows": "to", "from": "BvdtC0sMHlc", "to": "Jl9XIOZJ_pI"}, {"arrows": "to", "from": "vO0wz9THGq0", "to": "o4-2iNTxu6E"}, {"arrows": "to", "from": "vO0wz9THGq0", "to": "30sVvojkvqw"}, {"arrows": "to", "from": "o4-2iNTxu6E", "to": "lcrCkm2ED8M"}, {"arrows": "to", "from": "o4-2iNTxu6E", "to": "a6C9jh9kB9Q"}, {"arrows": "to", "from": "D5CXycD8gnc", "to": "Utvtf8rCY4g"}, {"arrows": "to", "from": "D5CXycD8gnc", "to": "q8eg2DypRC8"}, {"arrows": "to", "from": "q8eg2DypRC8", "to": "5L40rXqHsSk"}, {"arrows": "to", "from": "5L40rXqHsSk", "to": "veNHrGg4Gks"}, {"arrows": "to", "from": "5L40rXqHsSk", "to": "-cYt1cav9f0"}, {"arrows": "to", "from": "Utvtf8rCY4g", "to": "q8eg2DypRC8"}, {"arrows": "to", "from": "Utvtf8rCY4g", "to": "D0D8p9iaUEo"}, {"arrows": "to", "from": "D0D8p9iaUEo", "to": "H6tlXqFI-EA"}, {"arrows": "to", "from": "D0D8p9iaUEo", "to": "RE14kkYVu5I"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+                  // make a custom popup
+                      var popup = document.createElement("div");
+                      popup.className = 'popup';
+                      popupTimeout = null;
+                      popup.addEventListener('mouseover', function () {
+                          console.log(popup)
+                          if (popupTimeout !== null) {
+                              clearTimeout(popupTimeout);
+                              popupTimeout = null;
+                          }
+                      });
+                      popup.addEventListener('mouseout', function () {
+                          if (popupTimeout === null) {
+                              hidePopup();
+                          }
+                      });
+                      container.appendChild(popup);
+
+
+                      // use the popup event to show
+                      network.on("showPopup", function (params) {
+                          showPopup(params);
+                      });
+
+                      // use the hide event to hide it
+                      network.on("hidePopup", function (params) {
+                          hidePopup();
+                      });
+
+                      // hiding the popup through css
+                      function hidePopup() {
+                          popupTimeout = setTimeout(function () { popup.style.display = 'none'; }, 500);
+                      }
+
+                      // showing the popup
+                      function showPopup(nodeId) {
+                          // get the data from the vis.DataSet
+                          var nodeData = nodes.get([nodeId]);
+                          popup.innerHTML = nodeData[0].title;
+
+                          // get the position of the node
+                          var posCanvas = network.getPositions([nodeId])[nodeId];
+
+                          // get the bounding box of the node
+                          var boundingBox = network.getBoundingBox(nodeId);
+
+                          //position tooltip:
+                          posCanvas.x = posCanvas.x + 0.5 * (boundingBox.right - boundingBox.left);
+
+                          // convert coordinates to the DOM space
+                          var posDOM = network.canvasToDOM(posCanvas);
+
+                          // Give it an offset
+                          posDOM.x += 10;
+                          posDOM.y -= 20;
+
+                          // show and place the tooltip.
+                          popup.style.display = 'block';
+                          popup.style.top = posDOM.y + 'px';
+                          popup.style.left = posDOM.x + 'px';
+                      }
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>CYOA with Mark</title>
+</head>
+
+<body>
+    <style>
+    .container {
+        position: absolute;
+        top: 50%;  
+        left: 50%; 
+        transform: translate(-50%, -50%);
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 2vw;
+        height: 25vh;
+        width: 100vw;
+        place-items: center;
+    }
+    
+    .button {
+        width: 49vw;
+        height: 50px;
+        background-color: #3498db;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        line-height: 50px;
+        text-decoration: none;
+    }
+    
+    .button:hover {
+        background-color: #2980b9;
+    }
+
+    </style>
+    <script src="script.js"></script>
+    <div class="container">
+        <a href="cyoa/date" class="button">A Date with Mark</a>
+        <a href="cyoa/heist" class="button">A Heist with Mark</a>
+        <a href="cyoa/space1" class="button">In Space with Mark Part 1</a>
+        <a href="cyoa/space2" class="button">In Space with Mark Part 2</a>
+    </div>
+</body>
+
+</html>

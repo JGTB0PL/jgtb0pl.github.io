@@ -1,0 +1,236 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 98vh;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+             /* position absolute is important and the container has to be relative or absolute as well. */
+          div.popup {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 display:none;
+                 background-color:#f5f4ed;
+                 -moz-border-radius: 3px;
+                 -webkit-border-radius: 3px;
+                 border-radius: 3px;
+                 border: 1px solid #808074;
+                 box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+          }
+
+          /* hide the original tooltip */
+          .vis-tooltip {
+            display:none;
+          }
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#90EE90", "id": "9TjfkXmwbTs", "label": "A Heist with Markiplier", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/9TjfkXmwbTs\u0027 target=\u0027_blank\u0027\u003eA Heist with Markiplier\u003c/a\u003e"}, {"color": null, "id": "AJUy9Q3RGl8", "label": "Guns Blazing", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/AJUy9Q3RGl8\u0027 target=\u0027_blank\u0027\u003eGuns Blazing\u003c/a\u003e"}, {"color": null, "id": "hu60fNlVmF0", "label": "Car", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/hu60fNlVmF0\u0027 target=\u0027_blank\u0027\u003eCar\u003c/a\u003e"}, {"color": null, "id": "WOkGbGV2Tcg", "label": "Try to Fix", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/WOkGbGV2Tcg\u0027 target=\u0027_blank\u0027\u003eTry to Fix\u003c/a\u003e"}, {"color": null, "id": "M4HiiGiRKJE", "label": "I Don\u2019t Trust Strangers", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/M4HiiGiRKJE\u0027 target=\u0027_blank\u0027\u003eI Don\u2019t Trust Strangers\u003c/a\u003e"}, {"color": null, "id": "xrWThWmZINE", "label": "An Adventure Sounds Lovely", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/xrWThWmZINE\u0027 target=\u0027_blank\u0027\u003eAn Adventure Sounds Lovely\u003c/a\u003e"}, {"color": null, "id": "Vy8hCbhZtvc", "label": "Don\u2019t Give the Statue", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Vy8hCbhZtvc\u0027 target=\u0027_blank\u0027\u003eDon\u2019t Give the Statue\u003c/a\u003e"}, {"color": null, "id": "zelFSJm6yu8", "label": "Give the Statue", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/zelFSJm6yu8\u0027 target=\u0027_blank\u0027\u003eGive the Statue\u003c/a\u003e"}, {"color": null, "id": "o33XENKcP8M", "label": "Walk to Base", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/o33XENKcP8M\u0027 target=\u0027_blank\u0027\u003eWalk to Base\u003c/a\u003e"}, {"color": null, "id": "n6EH5NhxUo4", "label": "I\u2019m Fine!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/n6EH5NhxUo4\u0027 target=\u0027_blank\u0027\u003eI\u2019m Fine!\u003c/a\u003e"}, {"color": null, "id": "5za3hRrNVeg", "label": "The Soldier", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/5za3hRrNVeg\u0027 target=\u0027_blank\u0027\u003eThe Soldier\u003c/a\u003e"}, {"color": null, "id": "xtTTrN3oBIo", "label": "Ed\u0027s Hiding Something", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/xtTTrN3oBIo\u0027 target=\u0027_blank\u0027\u003eEd\u0027s Hiding Something\u003c/a\u003e"}, {"color": null, "id": "PCjbswYDp88", "label": "Tuna", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/PCjbswYDp88\u0027 target=\u0027_blank\u0027\u003eTuna\u003c/a\u003e"}, {"color": null, "id": "tj-11NRY64o", "label": "PB\u0026J", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/tj-11NRY64o\u0027 target=\u0027_blank\u0027\u003ePB\u0026J\u003c/a\u003e"}, {"color": null, "id": "Xe5GSBQcKmU", "label": "I\u2019m Hiding Something", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Xe5GSBQcKmU\u0027 target=\u0027_blank\u0027\u003eI\u2019m Hiding Something\u003c/a\u003e"}, {"color": null, "id": "-kqxCWQKPYI", "label": "The Scientist", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/-kqxCWQKPYI\u0027 target=\u0027_blank\u0027\u003eThe Scientist\u003c/a\u003e"}, {"color": null, "id": "N1xn5gXFch4", "label": "For the Greater Good", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/N1xn5gXFch4\u0027 target=\u0027_blank\u0027\u003eFor the Greater Good\u003c/a\u003e"}, {"color": null, "id": "ex4vozijjdk", "label": "ABSOLUTELY NOT!!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/ex4vozijjdk\u0027 target=\u0027_blank\u0027\u003eABSOLUTELY NOT!!\u003c/a\u003e"}, {"color": null, "id": "Nv12neoLzBw", "label": "Tell the Truth", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Nv12neoLzBw\u0027 target=\u0027_blank\u0027\u003eTell the Truth\u003c/a\u003e"}, {"color": null, "id": "d19r9sPihGM", "label": "Helicopter", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/d19r9sPihGM\u0027 target=\u0027_blank\u0027\u003eHelicopter\u003c/a\u003e"}, {"color": null, "id": "Ttld8M6RmfI", "label": "Rally the Prisoners", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Ttld8M6RmfI\u0027 target=\u0027_blank\u0027\u003eRally the Prisoners\u003c/a\u003e"}, {"color": null, "id": "SFbD8rM2S5c", "label": "I Want to Be Free", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/SFbD8rM2S5c\u0027 target=\u0027_blank\u0027\u003eI Want to Be Free\u003c/a\u003e"}, {"color": null, "id": "O6VB51PihWY", "label": "Thanks but No Thanks", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/O6VB51PihWY\u0027 target=\u0027_blank\u0027\u003eThanks but No Thanks\u003c/a\u003e"}, {"color": null, "id": "4Z4_t1LemOU", "label": "Thanks and also Yes Please", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/4Z4_t1LemOU\u0027 target=\u0027_blank\u0027\u003eThanks and also Yes Please\u003c/a\u003e"}, {"color": null, "id": "4WoRALUW_8g", "label": "Prison Life for Me", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/4WoRALUW_8g\u0027 target=\u0027_blank\u0027\u003ePrison Life for Me\u003c/a\u003e"}, {"color": null, "id": "BYpxqtEfKpk", "label": "Charm the Guards", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/BYpxqtEfKpk\u0027 target=\u0027_blank\u0027\u003eCharm the Guards\u003c/a\u003e"}, {"color": null, "id": "tu8qAfSv4pQ", "label": "What\u2019s That?", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/tu8qAfSv4pQ\u0027 target=\u0027_blank\u0027\u003eWhat\u2019s That?\u003c/a\u003e"}, {"color": null, "id": "cn4G5KQQFHw", "label": "Oh HELL No!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/cn4G5KQQFHw\u0027 target=\u0027_blank\u0027\u003eOh HELL No!\u003c/a\u003e"}, {"color": null, "id": "AS-mcpFmyMY", "label": "Stick to the Plan", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/AS-mcpFmyMY\u0027 target=\u0027_blank\u0027\u003eStick to the Plan\u003c/a\u003e"}, {"color": null, "id": "9n7Via0ect4", "label": "Open the Box", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/9n7Via0ect4\u0027 target=\u0027_blank\u0027\u003eOpen the Box\u003c/a\u003e"}, {"color": null, "id": "XEdgaWtjEqg", "label": "Shoot Wade", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/XEdgaWtjEqg\u0027 target=\u0027_blank\u0027\u003eShoot Wade\u003c/a\u003e"}, {"color": null, "id": "_EjgHql3mJ0", "label": "What\u2019s in the Box?", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/_EjgHql3mJ0\u0027 target=\u0027_blank\u0027\u003eWhat\u2019s in the Box?\u003c/a\u003e"}, {"color": null, "id": "lSJT6ch3-GQ", "label": "This Seems Safe", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/lSJT6ch3-GQ\u0027 target=\u0027_blank\u0027\u003eThis Seems Safe\u003c/a\u003e"}, {"color": null, "id": "6HtWfuz1wEA", "label": "Dig Dig Dig", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/6HtWfuz1wEA\u0027 target=\u0027_blank\u0027\u003eDig Dig Dig\u003c/a\u003e"}, {"color": null, "id": "xuukkVAJ5wk", "label": "What\u2019s in the Box?", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/xuukkVAJ5wk\u0027 target=\u0027_blank\u0027\u003eWhat\u2019s in the Box?\u003c/a\u003e"}, {"color": null, "id": "6NdgRVlAmAo", "label": "Stick to the Plan", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/6NdgRVlAmAo\u0027 target=\u0027_blank\u0027\u003eStick to the Plan\u003c/a\u003e"}, {"color": null, "id": "cI_hzj5g-aQ", "label": "Open the Box", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/cI_hzj5g-aQ\u0027 target=\u0027_blank\u0027\u003eOpen the Box\u003c/a\u003e"}, {"color": null, "id": "kKIm9otZZBg", "label": "Shoot Bob", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/kKIm9otZZBg\u0027 target=\u0027_blank\u0027\u003eShoot Bob\u003c/a\u003e"}, {"color": null, "id": "dHEAIpQDPdA", "label": "All Sneaky Like", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/dHEAIpQDPdA\u0027 target=\u0027_blank\u0027\u003eAll Sneaky Like\u003c/a\u003e"}, {"color": null, "id": "aPIHjZ7ik2U", "label": "Light Tunnel", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/aPIHjZ7ik2U\u0027 target=\u0027_blank\u0027\u003eLight Tunnel\u003c/a\u003e"}, {"color": null, "id": "QUbuL0VN01o", "label": "Row Home", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/QUbuL0VN01o\u0027 target=\u0027_blank\u0027\u003eRow Home\u003c/a\u003e"}, {"color": null, "id": "h-k59Ci_smg", "label": "Find Shelter", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/h-k59Ci_smg\u0027 target=\u0027_blank\u0027\u003eFind Shelter\u003c/a\u003e"}, {"color": null, "id": "-EBnnTYEB80", "label": "RUN AWAY!!", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/-EBnnTYEB80\u0027 target=\u0027_blank\u0027\u003eRUN AWAY!!\u003c/a\u003e"}, {"color": null, "id": "NrrnXtw23gI", "label": "Enter the Cave", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/NrrnXtw23gI\u0027 target=\u0027_blank\u0027\u003eEnter the Cave\u003c/a\u003e"}, {"color": null, "id": "ojpitvj0aTg", "label": "Me First", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/ojpitvj0aTg\u0027 target=\u0027_blank\u0027\u003eMe First\u003c/a\u003e"}, {"color": null, "id": "BXjHW86e4pc", "label": "You First", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/BXjHW86e4pc\u0027 target=\u0027_blank\u0027\u003eYou First\u003c/a\u003e"}, {"color": null, "id": "UPzKET34slc", "label": "Build a Sign", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/UPzKET34slc\u0027 target=\u0027_blank\u0027\u003eBuild a Sign\u003c/a\u003e"}, {"color": null, "id": "MIV53FtqA1A", "label": "Wait For Rescue", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/MIV53FtqA1A\u0027 target=\u0027_blank\u0027\u003eWait For Rescue\u003c/a\u003e"}, {"color": null, "id": "hYCiv0hvhcM", "label": "I Know Nothing", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/hYCiv0hvhcM\u0027 target=\u0027_blank\u0027\u003eI Know Nothing\u003c/a\u003e"}, {"color": null, "id": "VdwBhv69R54", "label": "Golden Treasure", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/VdwBhv69R54\u0027 target=\u0027_blank\u0027\u003eGolden Treasure\u003c/a\u003e"}, {"color": null, "id": "znKK8QMshHg", "label": "Treasured Gold", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/znKK8QMshHg\u0027 target=\u0027_blank\u0027\u003eTreasured Gold\u003c/a\u003e"}, {"color": null, "id": "ipGDwQDXcD0", "label": "I Know Everything", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/ipGDwQDXcD0\u0027 target=\u0027_blank\u0027\u003eI Know Everything\u003c/a\u003e"}, {"color": null, "id": "g16M54TNU8o", "label": "Dark Tunnel", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/g16M54TNU8o\u0027 target=\u0027_blank\u0027\u003eDark Tunnel\u003c/a\u003e"}, {"color": null, "id": "PSxr_Q1yNvE", "label": "Don\u2019t Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/PSxr_Q1yNvE\u0027 target=\u0027_blank\u0027\u003eDon\u2019t Split Up\u003c/a\u003e"}, {"color": null, "id": "Skmtr32TyjA", "label": "Don\u0027t Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/Skmtr32TyjA\u0027 target=\u0027_blank\u0027\u003eDon\u0027t Split Up\u003c/a\u003e"}, {"color": null, "id": "POf2YIskmn4", "label": "Don\u2019t Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/POf2YIskmn4\u0027 target=\u0027_blank\u0027\u003eDon\u2019t Split Up\u003c/a\u003e"}, {"color": null, "id": "55wOk9zdwXM", "label": "Don\u2019t Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/55wOk9zdwXM\u0027 target=\u0027_blank\u0027\u003eDon\u2019t Split Up\u003c/a\u003e"}, {"color": null, "id": "rJQdUfNcLt4", "label": "Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/rJQdUfNcLt4\u0027 target=\u0027_blank\u0027\u003eSplit Up\u003c/a\u003e"}, {"color": null, "id": "jH_OAoT-icU", "label": "Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/jH_OAoT-icU\u0027 target=\u0027_blank\u0027\u003eSplit Up\u003c/a\u003e"}, {"color": null, "id": "WLDw07ew24g", "label": "Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/WLDw07ew24g\u0027 target=\u0027_blank\u0027\u003eSplit Up\u003c/a\u003e"}, {"color": null, "id": "4YoY5OOyn6k", "label": "Split Up", "shape": "dot", "title": "\u003ca href=\u0027https://youtu.be/4YoY5OOyn6k\u0027 target=\u0027_blank\u0027\u003eSplit Up\u003c/a\u003e"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "9TjfkXmwbTs", "to": "dHEAIpQDPdA"}, {"arrows": "to", "from": "9TjfkXmwbTs", "to": "AJUy9Q3RGl8"}, {"arrows": "to", "from": "AJUy9Q3RGl8", "to": "d19r9sPihGM"}, {"arrows": "to", "from": "AJUy9Q3RGl8", "to": "hu60fNlVmF0"}, {"arrows": "to", "from": "hu60fNlVmF0", "to": "o33XENKcP8M"}, {"arrows": "to", "from": "hu60fNlVmF0", "to": "WOkGbGV2Tcg"}, {"arrows": "to", "from": "WOkGbGV2Tcg", "to": "xrWThWmZINE"}, {"arrows": "to", "from": "WOkGbGV2Tcg", "to": "M4HiiGiRKJE"}, {"arrows": "to", "from": "xrWThWmZINE", "to": "zelFSJm6yu8"}, {"arrows": "to", "from": "xrWThWmZINE", "to": "Vy8hCbhZtvc"}, {"arrows": "to", "from": "o33XENKcP8M", "to": "Nv12neoLzBw"}, {"arrows": "to", "from": "o33XENKcP8M", "to": "n6EH5NhxUo4"}, {"arrows": "to", "from": "n6EH5NhxUo4", "to": "-kqxCWQKPYI"}, {"arrows": "to", "from": "n6EH5NhxUo4", "to": "5za3hRrNVeg"}, {"arrows": "to", "from": "5za3hRrNVeg", "to": "Xe5GSBQcKmU"}, {"arrows": "to", "from": "5za3hRrNVeg", "to": "xtTTrN3oBIo"}, {"arrows": "to", "from": "xtTTrN3oBIo", "to": "tj-11NRY64o"}, {"arrows": "to", "from": "xtTTrN3oBIo", "to": "PCjbswYDp88"}, {"arrows": "to", "from": "-kqxCWQKPYI", "to": "ex4vozijjdk"}, {"arrows": "to", "from": "-kqxCWQKPYI", "to": "N1xn5gXFch4"}, {"arrows": "to", "from": "d19r9sPihGM", "to": "BYpxqtEfKpk"}, {"arrows": "to", "from": "d19r9sPihGM", "to": "Ttld8M6RmfI"}, {"arrows": "to", "from": "Ttld8M6RmfI", "to": "4WoRALUW_8g"}, {"arrows": "to", "from": "Ttld8M6RmfI", "to": "SFbD8rM2S5c"}, {"arrows": "to", "from": "SFbD8rM2S5c", "to": "4Z4_t1LemOU"}, {"arrows": "to", "from": "SFbD8rM2S5c", "to": "O6VB51PihWY"}, {"arrows": "to", "from": "BYpxqtEfKpk", "to": "6HtWfuz1wEA"}, {"arrows": "to", "from": "BYpxqtEfKpk", "to": "tu8qAfSv4pQ"}, {"arrows": "to", "from": "tu8qAfSv4pQ", "to": "lSJT6ch3-GQ"}, {"arrows": "to", "from": "tu8qAfSv4pQ", "to": "cn4G5KQQFHw"}, {"arrows": "to", "from": "cn4G5KQQFHw", "to": "_EjgHql3mJ0"}, {"arrows": "to", "from": "cn4G5KQQFHw", "to": "AS-mcpFmyMY"}, {"arrows": "to", "from": "AS-mcpFmyMY", "to": "XEdgaWtjEqg"}, {"arrows": "to", "from": "AS-mcpFmyMY", "to": "9n7Via0ect4"}, {"arrows": "to", "from": "6HtWfuz1wEA", "to": "6NdgRVlAmAo"}, {"arrows": "to", "from": "6HtWfuz1wEA", "to": "xuukkVAJ5wk"}, {"arrows": "to", "from": "6NdgRVlAmAo", "to": "kKIm9otZZBg"}, {"arrows": "to", "from": "6NdgRVlAmAo", "to": "cI_hzj5g-aQ"}, {"arrows": "to", "from": "dHEAIpQDPdA", "to": "g16M54TNU8o"}, {"arrows": "to", "from": "dHEAIpQDPdA", "to": "aPIHjZ7ik2U"}, {"arrows": "to", "from": "aPIHjZ7ik2U", "to": "MIV53FtqA1A"}, {"arrows": "to", "from": "aPIHjZ7ik2U", "to": "QUbuL0VN01o"}, {"arrows": "to", "from": "QUbuL0VN01o", "to": "UPzKET34slc"}, {"arrows": "to", "from": "QUbuL0VN01o", "to": "h-k59Ci_smg"}, {"arrows": "to", "from": "h-k59Ci_smg", "to": "NrrnXtw23gI"}, {"arrows": "to", "from": "h-k59Ci_smg", "to": "-EBnnTYEB80"}, {"arrows": "to", "from": "NrrnXtw23gI", "to": "BXjHW86e4pc"}, {"arrows": "to", "from": "NrrnXtw23gI", "to": "ojpitvj0aTg"}, {"arrows": "to", "from": "MIV53FtqA1A", "to": "ipGDwQDXcD0"}, {"arrows": "to", "from": "MIV53FtqA1A", "to": "hYCiv0hvhcM"}, {"arrows": "to", "from": "hYCiv0hvhcM", "to": "znKK8QMshHg"}, {"arrows": "to", "from": "hYCiv0hvhcM", "to": "VdwBhv69R54"}, {"arrows": "to", "from": "g16M54TNU8o", "to": "4YoY5OOyn6k"}, {"arrows": "to", "from": "g16M54TNU8o", "to": "PSxr_Q1yNvE"}, {"arrows": "to", "from": "PSxr_Q1yNvE", "to": "WLDw07ew24g"}, {"arrows": "to", "from": "PSxr_Q1yNvE", "to": "Skmtr32TyjA"}, {"arrows": "to", "from": "Skmtr32TyjA", "to": "jH_OAoT-icU"}, {"arrows": "to", "from": "Skmtr32TyjA", "to": "POf2YIskmn4"}, {"arrows": "to", "from": "POf2YIskmn4", "to": "rJQdUfNcLt4"}, {"arrows": "to", "from": "POf2YIskmn4", "to": "55wOk9zdwXM"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+                  // make a custom popup
+                      var popup = document.createElement("div");
+                      popup.className = 'popup';
+                      popupTimeout = null;
+                      popup.addEventListener('mouseover', function () {
+                          console.log(popup)
+                          if (popupTimeout !== null) {
+                              clearTimeout(popupTimeout);
+                              popupTimeout = null;
+                          }
+                      });
+                      popup.addEventListener('mouseout', function () {
+                          if (popupTimeout === null) {
+                              hidePopup();
+                          }
+                      });
+                      container.appendChild(popup);
+
+
+                      // use the popup event to show
+                      network.on("showPopup", function (params) {
+                          showPopup(params);
+                      });
+
+                      // use the hide event to hide it
+                      network.on("hidePopup", function (params) {
+                          hidePopup();
+                      });
+
+                      // hiding the popup through css
+                      function hidePopup() {
+                          popupTimeout = setTimeout(function () { popup.style.display = 'none'; }, 500);
+                      }
+
+                      // showing the popup
+                      function showPopup(nodeId) {
+                          // get the data from the vis.DataSet
+                          var nodeData = nodes.get([nodeId]);
+                          popup.innerHTML = nodeData[0].title;
+
+                          // get the position of the node
+                          var posCanvas = network.getPositions([nodeId])[nodeId];
+
+                          // get the bounding box of the node
+                          var boundingBox = network.getBoundingBox(nodeId);
+
+                          //position tooltip:
+                          posCanvas.x = posCanvas.x + 0.5 * (boundingBox.right - boundingBox.left);
+
+                          // convert coordinates to the DOM space
+                          var posDOM = network.canvasToDOM(posCanvas);
+
+                          // Give it an offset
+                          posDOM.x += 10;
+                          posDOM.y -= 20;
+
+                          // show and place the tooltip.
+                          popup.style.display = 'block';
+                          popup.style.top = posDOM.y + 'px';
+                          popup.style.left = posDOM.x + 'px';
+                      }
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
