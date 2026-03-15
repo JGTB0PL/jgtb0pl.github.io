@@ -1,0 +1,1395 @@
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<title>EDK Edycja Trasy</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    background: #1b1b38;
+    color: #ffffef;
+    font-family: sans-serif;
+  }
+  #left {
+    width: 34%;
+    min-width: 220px;
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #323259;
+  }
+  #controls {
+    padding: 10px;
+    background: #323259;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  #stations {
+    flex: 1;
+    overflow-y: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: #323259;
+    padding: 6px;
+    text-align: left;
+  }
+  td {
+    padding: 4px;
+    border-bottom: 1px solid #323259;
+  }
+  tr:hover td {
+    background: #262649;
+  }
+  #stats {
+    padding: 10px;
+    border-top: 2px solid #323259;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  #statsText {
+    white-space: pre-line;
+  }
+  #map {
+    flex: 1;
+    height: 100vh;
+  }
+  #leftResizer {
+    width: 4px;
+    cursor: col-resize;
+    background: #323259;
+  }
+  #leftResizer:hover {
+    background: #3e3e70;
+  }
+  input[type="text"] {
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #1b1b38;
+    color: #ffffef;
+    border: 1px solid #323259;
+  }
+  button {
+    background: #262649;
+    color: #ffffef;
+    border: 1px solid #262649;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  button:hover:enabled {
+    background: #3e3e70;
+  }
+  label {
+    font-size: 13px;
+  }
+  #fileInput {
+    display: none;
+  }
+  .file-label {
+    background: #262649;
+    color: #ffffef;
+    border: 1px solid #262649;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .file-label:hover {
+    background: #3e3e70;
+  }
+  /* Vertex marker */
+  .vertex-icon {
+    background: none;
+    border: none;
+  }
+  .vertex-icon-inner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ff9b9ba4;
+    border: 2px solid #ff5858;
+  }
+  /* Split export button */
+  .split-btn {
+    position: relative;
+    display: flex;
+    margin-left: auto;
+  }
+  .split-btn > button:first-child {
+    border-right: 1px solid #1b1b38;
+  }
+  #exportArrow {
+    padding: 4px 6px;
+  }
+  #exportMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #262649;
+    border: 1px solid #323259;
+    flex-direction: column;
+    z-index: 1000;
+    min-width: 80px;
+  }
+  #exportMenu:not([hidden]) {
+    display: flex;
+  }
+  #exportMenu button {
+    border: none;
+    border-bottom: 1px solid #323259;
+    text-align: left;
+    padding: 4px 8px;
+    margin-left: 0;
+  }
+  #exportMenu button:last-child {
+    border-bottom: none;
+  }
+  #exportMenu button:hover:enabled {
+    background: #3e3e70;
+  }
+  /* Route hover tooltip */
+  #routeTooltip {
+    position: fixed;
+    background: #262649;
+    border: 1px solid #323259;
+    color: #ffffef;
+    font-size: 12px;
+    padding: 3px 7px;
+    pointer-events: none;
+    z-index: 2000;
+    white-space: nowrap;
+  }
+  /* Numbered station marker */
+  .station-icon {
+    background: transparent;
+    border: none;
+  }
+  .station-icon-inner {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #4a90d9;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 13px;
+    font-family: sans-serif;
+    color: #fff;
+    line-height: 1;
+    position: relative;
+  }
+  .station-icon-inner::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -9px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid #4a90d9;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+  }
+  /* Drag-and-drop highlight */
+  #map.drag-over {
+    outline: 3px dashed #3e3e70;
+    outline-offset: -3px;
+  }
+  /* Confirmation modal */
+  #confirmOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+  }
+  #confirmOverlay:not([hidden]) {
+    display: flex;
+  }
+  #confirmBox {
+    background: #262649;
+    border: 1px solid #323259;
+    padding: 20px 24px;
+    min-width: 260px;
+  }
+  #confirmMsg {
+    margin: 0 0 16px;
+    font-size: 14px;
+  }
+  #confirmBtns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  #statsText {
+    white-space: pre-line;
+  }
+  #langSelect {
+    background: #1b1b38;
+    color: #ffffef;
+    border: 1px solid #323259;
+    font-size: 15px;
+    padding: 2px 4px;
+    cursor: pointer;
+    align-self: flex-end;
+  }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+<div id="left">
+  <div id="controls">
+    <label for="fileInput" class="file-label" id="fileLabel">Wczytaj KML/GPX</label>
+    <input type="file" id="fileInput" accept=".gpx,.kml" />
+    <button id="undoBtn" disabled>Cofnij</button>
+    <button id="reverseBtn" disabled>Odwr&#243;&#263; tras&#281;</button>
+    <label id="editRouteLabel">
+      <input type="checkbox" id="editRoute" /> Edycja trasy
+    </label>
+    <div class="split-btn" id="exportGroup">
+      <button id="exportBtn" disabled>Eksportuj KML</button>
+      <button id="exportArrow" disabled aria-label="Wybierz format eksportu">&#9662;</button>
+      <div id="exportMenu" hidden>
+        <button data-format="kml">KML</button>
+        <button data-format="gpx">GPX</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stations">
+    <table id="stationsTable">
+      <thead>
+        <tr><th id="thStation">Stacja</th><th id="thDistance">Odleg&#322;o&#347;&#263;</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="stats">
+    <span id="statsText">D&#322;ugo&#347;&#263; trasy: --&#10;&#10;By Jan Guziak</span>
+    <select id="langSelect">
+      <option value="pl">PL</option>
+      <option value="en">EN</option>
+    </select>
+  </div>
+</div>
+
+<div id="leftResizer"></div>
+<div id="map"></div>
+
+<!-- Route hover tooltip -->
+<div id="routeTooltip" hidden></div>
+
+<!-- Confirmation modal -->
+<div id="confirmOverlay" hidden>
+  <div id="confirmBox">
+    <p id="confirmMsg"></p>
+    <div id="confirmBtns">
+      <button id="confirmOk"></button>
+      <button id="confirmCancel"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// === EDK Edycja Trasy v2.2.0 ===
+
+// === Config ===
+// Set to true to force the last station (lp=14) to stay within 50 m of the route end.
+// When true, the station is pinned to the last route point after any route change or reversal.
+let SNAP_LAST_STATION_TO_END = true;
+console.log('Config: SNAP_LAST_STATION_TO_END =', SNAP_LAST_STATION_TO_END);
+
+// === Internationalisation ===
+const TRANSLATIONS = {
+  pl: {
+    fileLabel:      'Wczytaj KML/GPX',
+    undoBtn:        'Cofnij',
+    reverseBtn:     'Odwr\u00f3\u0107 tras\u0119',
+    editRouteLabel: 'Edycja trasy',
+    exportBtnKml:   'Eksportuj KML',
+    exportBtnGpx:   'Eksportuj GPX',
+    exportAriaLabel:'Wybierz format eksportu',
+    thStation:      'Stacja',
+    thDistance:     'Odleg\u0142o\u015b\u0107',
+    statsEmpty:     'D\u0142ugo\u015b\u0107 trasy: --',
+    statsRoute:     (km) => `D\u0142ugo\u015b\u0107 trasy: ${km} km`,
+    confirmReplace: 'Zast\u0105pi\u0107 istniej\u0105c\u0105 tras\u0119?',
+    confirmOk:      'Tak',
+    confirmCancel:  'Anuluj',
+    wptName:        (lp) => `Stacja ${lp}`,
+    tileSatellite:  'Satelita',
+    tileOsm:        'OSM',
+    tileTopo:       'Topo',
+  },
+  en: {
+    fileLabel:      'Load KML/GPX',
+    undoBtn:        'Undo',
+    reverseBtn:     'Reverse route',
+    editRouteLabel: 'Edit route',
+    exportBtnKml:   'Export KML',
+    exportBtnGpx:   'Export GPX',
+    exportAriaLabel:'Select export format',
+    thStation:      'Station',
+    thDistance:     'Distance',
+    statsEmpty:     'Route length: --',
+    statsRoute:     (km) => `Route length: ${km} km`,
+    confirmReplace: 'Replace existing route?',
+    confirmOk:      'Yes',
+    confirmCancel:  'Cancel',
+    wptName:        (lp) => `Station ${lp}`,
+    tileSatellite:  'Satellite',
+    tileOsm:        'OSM',
+    tileTopo:       'Topo',
+  }
+};
+
+let currentLang = localStorage.getItem('edkLang') || 'pl';
+function t(key, ...args) {
+  const val = TRANSLATIONS[currentLang][key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+function applyLanguage() {
+  document.getElementById('fileLabel').textContent      = t('fileLabel');
+  document.getElementById('undoBtn').textContent        = t('undoBtn');
+  document.getElementById('reverseBtn').textContent     = t('reverseBtn');
+  // Preserve the checkbox, only update the text node
+  const editLbl = document.getElementById('editRouteLabel');
+  editLbl.childNodes[editLbl.childNodes.length - 1].textContent = ' ' + t('editRouteLabel');
+  document.getElementById('exportArrow').setAttribute('aria-label', t('exportAriaLabel'));
+  document.getElementById('thStation').textContent   = t('thStation');
+  document.getElementById('thDistance').textContent  = t('thDistance');
+  document.getElementById('confirmOk').textContent     = t('confirmOk');
+  document.getElementById('confirmCancel').textContent = t('confirmCancel');
+  // Update export button label (preserve current format)
+  exportBtn.textContent = selectedExportFormat === 'gpx' ? t('exportBtnGpx') : t('exportBtnKml');
+  // Refresh stats label
+  updateStatsLabel();
+  // Rebuild tile control so layer names appear in the current language
+  if (typeof buildTileControl === 'function') buildTileControl();
+}
+
+// === Geometry helpers ===
+const EARTH_R = 6371000.0;
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const dphi = (lat2 - lat1) * Math.PI / 180;
+  const dlambda = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dphi / 2) ** 2 +
+            Math.cos(phi1) * Math.cos(phi2) * Math.sin(dlambda / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_R * c;
+}
+
+function cumulativeDistances(points) {
+  const dists = [0];
+  for (let i = 1; i < points.length; i++) {
+    const [lat1, lon1] = points[i - 1];
+    const [lat2, lon2] = points[i];
+    dists.push(dists[dists.length - 1] + haversine(lat1, lon1, lat2, lon2));
+  }
+  return dists;
+}
+
+function latlonToXY(lat, lon, lat0, lon0) {
+  const x = (lon - lon0) * Math.PI / 180 * Math.cos(((lat + lat0) / 2) * Math.PI / 180) * EARTH_R;
+  const y = (lat - lat0) * Math.PI / 180 * EARTH_R;
+  return [x, y];
+}
+
+function xyToLatlon(x, y, lat0, lon0) {
+  const lat = y / EARTH_R * 180 / Math.PI + lat0;
+  const lon = x / (EARTH_R * Math.cos(((lat + lat0) / 2) * Math.PI / 180)) * 180 / Math.PI + lon0;
+  return [lat, lon];
+}
+
+function projectOnRoute(points, cumdist, targetDist) {
+  if (!points.length) return [0, 0];
+  if (targetDist <= 0) return points[0];
+  const total = cumdist[cumdist.length - 1];
+  if (targetDist >= total) return points[points.length - 1];
+  for (let i = 1; i < cumdist.length; i++) {
+    if (cumdist[i] >= targetDist) {
+      const d0 = cumdist[i - 1];
+      const d1 = cumdist[i];
+      const t = d1 > d0 ? (targetDist - d0) / (d1 - d0) : 0;
+      const [lat0, lon0] = points[i - 1];
+      const [lat1, lon1] = points[i];
+      return [lat0 + t * (lat1 - lat0), lon0 + t * (lon1 - lon0)];
+    }
+  }
+  return points[points.length - 1];
+}
+
+function nearestPointOnRoute(lat, lon, routePoints, cumdist) {
+  if (!routePoints.length || routePoints.length < 2) {
+    return { projLat: lat, projLon: lon, routeDist: 0, lateralDist: 0 };
+  }
+  const [lat0, lon0] = routePoints[0];
+  const [px, py] = latlonToXY(lat, lon, lat0, lon0);
+  let bestDist = Infinity;
+  let bestRouteD = 0;
+  let bestProj = [px, py];
+  for (let i = 1; i < routePoints.length; i++) {
+    const [lat1, lon1] = routePoints[i - 1];
+    const [lat2, lon2] = routePoints[i];
+    const [x1, y1] = latlonToXY(lat1, lon1, lat0, lon0);
+    const [x2, y2] = latlonToXY(lat2, lon2, lat0, lon0);
+    const vx = x2 - x1, vy = y2 - y1;
+    const wx = px - x1, wy = py - y1;
+    const segLen2 = vx * vx + vy * vy;
+    let t = 0;
+    if (segLen2 !== 0) {
+      t = (wx * vx + wy * vy) / segLen2;
+      if (t < 0) t = 0;
+      if (t > 1) t = 1;
+    }
+    const projx = x1 + t * vx;
+    const projy = y1 + t * vy;
+    const dist = Math.hypot(px - projx, py - projy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestRouteD = cumdist[i - 1] + t * (cumdist[i] - cumdist[i - 1]);
+      bestProj = [projx, projy];
+    }
+  }
+  const [projLat, projLon] = xyToLatlon(bestProj[0], bestProj[1], lat0, lon0);
+  return { projLat, projLon, routeDist: bestRouteD, lateralDist: bestDist };
+}
+
+function distanceAlongRouteForPoint(lat, lon, routePoints, cumdist) {
+  return nearestPointOnRoute(lat, lon, routePoints, cumdist).routeDist;
+}
+
+function snapPointToRouteWith50mRule(lat, lon, routePoints, cumdist) {
+  if (!routePoints.length || routePoints.length < 2) {
+    return { lat, lon, routeDist: 0 };
+  }
+  const { projLat, projLon, routeDist, lateralDist } = nearestPointOnRoute(lat, lon, routePoints, cumdist);
+  if (lateralDist <= 49.5) {
+    return { lat, lon, routeDist };
+  }
+  const [lat0, lon0] = routePoints[0];
+  const [px, py] = latlonToXY(lat, lon, lat0, lon0);
+  const [rx, ry] = latlonToXY(projLat, projLon, lat0, lon0);
+  const dx = px - rx, dy = py - ry;
+  const length = Math.hypot(dx, dy);
+  if (length === 0) {
+    const [slat, slon] = xyToLatlon(rx, ry, lat0, lon0);
+    return { lat: slat, lon: slon, routeDist };
+  }
+  const scale = 49.5 / length;
+  const [slat, slon] = xyToLatlon(rx + dx * scale, ry + dy * scale, lat0, lon0);
+  return { lat: slat, lon: slon, routeDist };
+}
+
+// Smoke tests
+(function() {
+  const d = haversine(0, 0, 0, 1);
+  console.assert(d > 90000 && d < 120000, 'haversine sanity');
+  const c = cumulativeDistances([[0, 0], [0, 1]]);
+  console.assert(Math.abs(c[1] - d) < 1e-3, 'cumulativeDistances sanity');
+})();
+
+// === App state ===
+let map;
+let routeLine = null;
+let routePoints = [];
+let cumdist     = [];
+
+const NUM_STATIONS = 14;
+let stations       = [];
+let stationMarkers = [];
+
+let routeEditingEnabled = false;
+let vertexMarkers = [];
+let selectedExportFormat = 'kml'; // 'kml' | 'gpx'
+let ctrlKeyHeld = false;
+
+// === Undo history ===
+const MAX_UNDO = 50;
+const undoStack = [];
+
+function snapshotState() {
+  undoStack.push({
+    routePoints: routePoints.map(p => [p[0], p[1]]),
+    stations: stations.map(s => ({ ...s }))
+  });
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  undoBtn.disabled = false;
+}
+
+function performUndo() {
+  if (!undoStack.length) return;
+  const snap = undoStack.pop();
+  routePoints = snap.routePoints;
+
+  // Restore station positions/order
+  if (snap.stations.length && stations.length) {
+    snap.stations.forEach(ss => {
+      const s = stations.find(x => x.id === ss.id);
+      if (s) { s.lat = ss.lat; s.lon = ss.lon; s.routeDist = ss.routeDist; s.lp = ss.lp; }
+    });
+  }
+
+  cumdist = routePoints.length ? cumulativeDistances(routePoints) : [];
+  drawRouteOnMap(true);
+  updateStatsLabel();
+
+  if (stations.length && cumdist.length) {
+    reorderStationsByDistance();
+    snapLastStationToEnd();
+    renderStationsTable();
+    updateMarkerPopups();
+    stations.forEach(st => {
+      const m = stationMarkers[st.id];
+      if (m) m.setLatLng([st.lat, st.lon]);
+    });
+  }
+
+  if (!undoStack.length) undoBtn.disabled = true;
+}
+
+// === DOM refs ===
+const fileInput   = document.getElementById('fileInput');
+const editRouteCheckbox = document.getElementById('editRoute');
+const exportBtn   = document.getElementById('exportBtn');
+const exportArrow = document.getElementById('exportArrow');
+const exportMenu  = document.getElementById('exportMenu');
+const reverseBtn  = document.getElementById('reverseBtn');
+const undoBtn     = document.getElementById('undoBtn');
+const leftPanel   = document.getElementById('left');
+const leftResizer = document.getElementById('leftResizer');
+const tbody       = document.querySelector('#stationsTable tbody');
+const mapDiv        = document.getElementById('map');
+const routeTooltip  = document.getElementById('routeTooltip');
+
+// Vertex icon
+const vertexIcon = L.divIcon({
+  className: 'vertex-icon',
+  html: '<div class="vertex-icon-inner"></div>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8]
+});
+
+// === Tile layers ===
+const TILE_LAYERS = {
+  'osm': L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }
+  ),
+  'esri-satellite': L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 22, maxNativeZoom: 18, attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community' }
+  ),
+  'topo': L.tileLayer(
+    'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    { maxZoom: 22, maxNativeZoom: 17, attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)', subdomains: ['a','b','c'] }
+  ),
+};
+
+let currentTileKey = localStorage.getItem('edkTileLayer') || 'osm';
+if (!TILE_LAYERS[currentTileKey]) currentTileKey = 'osm';
+let tileControl = null;
+
+function buildTileControl() {
+  if (tileControl) { tileControl.remove(); tileControl = null; }
+  const baseLayers = {
+    [t('tileOsm')]:       TILE_LAYERS['osm'],
+    [t('tileSatellite')]: TILE_LAYERS['esri-satellite'],
+    [t('tileTopo')]:      TILE_LAYERS['topo'],
+  };
+  tileControl = L.control.layers(baseLayers, {}, { position: 'topright' }).addTo(map);
+}
+
+// === Map init ===
+map = L.map('map', { maxZoom: 22 }).setView([0, 0], 2);
+TILE_LAYERS[currentTileKey].addTo(map);
+
+map.on('baselayerchange', (e) => {
+  const key = Object.keys(TILE_LAYERS).find(k => TILE_LAYERS[k] === e.layer);
+  if (key) {
+    currentTileKey = key;
+    localStorage.setItem('edkTileLayer', key);
+  }
+});
+
+// First-point placement on blank map when editing enabled
+map.on('click', (e) => {
+  if (!routeEditingEnabled || routePoints.length) return;
+  snapshotState();
+  routePoints = [[e.latlng.lat, e.latlng.lng]];
+  recomputeAfterRouteChange();
+  drawRouteOnMap();
+});
+
+// === Left panel resize ===
+let isResizingLeft = false;
+let startXLeft     = 0;
+let startWidthLeft = 0;
+
+leftResizer.addEventListener('mousedown', (e) => {
+  isResizingLeft = true;
+  startXLeft     = e.clientX;
+  startWidthLeft = leftPanel.getBoundingClientRect().width;
+  document.body.style.cursor = 'col-resize';
+  document.addEventListener('mousemove', onLeftResizeMove);
+  document.addEventListener('mouseup',   onLeftResizeUp);
+});
+
+function onLeftResizeMove(e) {
+  if (!isResizingLeft) return;
+  let newWidth = startWidthLeft + (e.clientX - startXLeft);
+  if (newWidth < 220) newWidth = 220;
+  if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
+  leftPanel.style.width = newWidth + 'px';
+  map.invalidateSize();
+}
+
+function onLeftResizeUp() {
+  if (!isResizingLeft) return;
+  isResizingLeft = false;
+  document.body.style.cursor = '';
+  document.removeEventListener('mousemove', onLeftResizeMove);
+  document.removeEventListener('mouseup',   onLeftResizeUp);
+}
+
+// === Route drawing ===
+function drawRouteOnMap(noFit) {
+  if (routeLine) {
+    routeLine.off('click', onRouteClick);
+    routeLine.off('mousemove', onRouteMouseMove);
+    routeLine.off('mouseout',  onRouteMouseOut);
+    map.removeLayer(routeLine);
+    routeLine = null;
+  }
+  onRouteMouseOut();
+  clearVertexMarkers();
+
+  if (!routePoints.length) {
+    map.setView([0, 0], 2);
+    return;
+  }
+  routeLine = L.polyline(routePoints, { weight: 4, color: 'red' }).addTo(map);
+  routeLine.on('click', onRouteClick);
+  routeLine.on('mousemove', onRouteMouseMove);
+  routeLine.on('mouseout',  onRouteMouseOut);
+
+  if (!noFit && routePoints.length >= 2) {
+    map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+  }
+
+  if (routeEditingEnabled) {
+    rebuildVertexMarkers();
+  }
+}
+
+function updateStatsLabel() {
+  const statsText = document.getElementById('statsText');
+  if (!routePoints.length || !cumdist.length) {
+    statsText.textContent = t('statsEmpty') + '\n\nBy Jan Guziak';
+    return;
+  }
+  const lengthKm = cumdist[cumdist.length - 1] / 1000.0;
+  statsText.textContent = t('statsRoute', lengthKm.toFixed(2)) + '\n\nBy Jan Guziak';
+}
+
+// === Vertex markers ===
+function clearVertexMarkers() {
+  vertexMarkers.forEach(m => map.removeLayer(m));
+  vertexMarkers = [];
+}
+
+function rebuildVertexMarkers() {
+  clearVertexMarkers();
+  if (!routePoints.length) return;
+  routePoints.forEach((pt, idx) => {
+    const [lat, lon] = pt;
+    const m = L.marker([lat, lon], { draggable: true, icon: vertexIcon, zIndexOffset: 1000 }).addTo(map);
+    m.vertexIndex = idx;
+    m.on('dragend', onVertexDragged);
+    m.on('click', (e) => {
+      if (!e.originalEvent.altKey) return;
+      if (routePoints.length <= 2) return;
+      const i = m.vertexIndex;
+      if (i == null || i < 0 || i >= routePoints.length) return;
+      snapshotState();
+      routePoints.splice(i, 1);
+      recomputeAfterRouteChange();
+      rebuildVertexMarkers();
+    });
+    vertexMarkers.push(m);
+  });
+}
+
+function onVertexDragged(e) {
+  const m = e.target;
+  let idx = m.vertexIndex;
+  if (idx == null || idx < 0 || idx >= routePoints.length) return;
+  snapshotState();
+  const ll = m.getLatLng();
+  routePoints[idx] = [ll.lat, ll.lng];
+
+  const mergeThreshold = 1.0;
+  const distTo = (i, j) => {
+    const [la1, lo1] = routePoints[i];
+    const [la2, lo2] = routePoints[j];
+    return haversine(la1, lo1, la2, lo2);
+  };
+
+  if (routePoints.length > 2) {
+    if (idx > 0 && distTo(idx, idx - 1) < mergeThreshold) {
+      routePoints.splice(idx, 1);
+      idx = null;
+    } else if (idx < routePoints.length - 1 && distTo(idx, idx + 1) < mergeThreshold) {
+      routePoints.splice(idx + 1, 1);
+      idx = null;
+    }
+  }
+
+  recomputeAfterRouteChange();
+  rebuildVertexMarkers();
+}
+
+function onRouteClick(e) {
+  if (!routeEditingEnabled) return;
+  if (!routePoints.length) return;
+
+  const clickLat = e.latlng.lat;
+  const clickLon = e.latlng.lng;
+  const [lat0, lon0] = routePoints[0];
+  const [px, py] = latlonToXY(clickLat, clickLon, lat0, lon0);
+
+  let bestDist = Infinity;
+  let bestInsert = null;
+
+  for (let i = 1; i < routePoints.length; i++) {
+    const [lat1, lon1] = routePoints[i - 1];
+    const [lat2, lon2] = routePoints[i];
+    const [x1, y1] = latlonToXY(lat1, lon1, lat0, lon0);
+    const [x2, y2] = latlonToXY(lat2, lon2, lat0, lon0);
+    const vx = x2 - x1, vy = y2 - y1;
+    const wx = px - x1, wy = py - y1;
+    const segLen2 = vx * vx + vy * vy;
+    let t = 0;
+    if (segLen2 !== 0) {
+      t = (wx * vx + wy * vy) / segLen2;
+      if (t < 0) t = 0;
+      if (t > 1) t = 1;
+    }
+    const projx = x1 + t * vx;
+    const projy = y1 + t * vy;
+    const dist = Math.hypot(px - projx, py - projy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      const [ilat, ilon] = xyToLatlon(projx, projy, lat0, lon0);
+      bestInsert = { idx: i, lat: ilat, lon: ilon };
+    }
+  }
+
+  if (bestInsert) {
+    snapshotState();
+    routePoints.splice(bestInsert.idx, 0, [bestInsert.lat, bestInsert.lon]);
+    recomputeAfterRouteChange();
+    rebuildVertexMarkers();
+  }
+}
+
+function recomputeAfterRouteChange() {
+  if (!routePoints.length) {
+    cumdist = [];
+    drawRouteOnMap();
+    updateStatsLabel();
+    return;
+  }
+  cumdist = cumulativeDistances(routePoints);
+  if (routeLine) {
+    routeLine.setLatLngs(routePoints);
+  }
+  updateStatsLabel();
+
+  if (stations.length && cumdist.length) {
+    stations.forEach(st => {
+      st.routeDist = distanceAlongRouteForPoint(st.lat, st.lon, routePoints, cumdist);
+    });
+    reorderStationsByDistance();
+    snapLastStationToEnd();
+    renderStationsTable();
+    updateMarkerPopups();
+  }
+}
+
+// === Route hover tooltip ===
+function onRouteMouseMove(e) {
+  if (!cumdist.length) return;
+  const d = distanceAlongRouteForPoint(e.latlng.lat, e.latlng.lng, routePoints, cumdist);
+  routeTooltip.textContent = (d / 1000).toFixed(2) + ' km';
+  routeTooltip.hidden = false;
+  routeTooltip.style.left = (e.originalEvent.clientX + 14) + 'px';
+  routeTooltip.style.top  = (e.originalEvent.clientY - 10) + 'px';
+}
+
+function onRouteMouseOut() {
+  routeTooltip.hidden = true;
+}
+
+// === Numbered station icon helper ===
+function makeStationIcon(lp) {
+  return L.divIcon({
+    className: 'station-icon',
+    html: `<div class="station-icon-inner">${lp}</div>`,
+    iconSize: [30, 40],
+    iconAnchor: [15, 40]
+  });
+}
+
+// === Station management ===
+function clearStations() {
+  stations = [];
+  stationMarkers.forEach(m => map.removeLayer(m));
+  stationMarkers = [];
+  tbody.innerHTML = '';
+}
+
+function reorderStationsByDistance() {
+  const ordered = stations.slice().sort((a, b) => a.routeDist - b.routeDist);
+  ordered.forEach((st, idx) => { st.lp = idx + 1; });
+}
+
+// Place the last station (lp=14) at the route end node — used on init and reverse.
+function snapLastStationToEnd() {
+  if (!SNAP_LAST_STATION_TO_END) return;
+  if (!stations.length || !routePoints.length || !cumdist.length) return;
+  const last = stations.reduce((a, b) => a.lp > b.lp ? a : b);
+  const [endLat, endLon] = routePoints[routePoints.length - 1];
+  last.lat = endLat;
+  last.lon = endLon;
+  last.routeDist = cumdist[cumdist.length - 1];
+  const m = stationMarkers[last.id];
+  if (m) m.setLatLng([endLat, endLon]);
+}
+
+// Constrain a dragged position to within 50 m of the route end node.
+// Returns { lat, lon, routeDist } clamped to the 50 m radius.
+function clampToEndNode(lat, lon) {
+  const [endLat, endLon] = routePoints[routePoints.length - 1];
+  const dist = haversine(lat, lon, endLat, endLon);
+  if (dist <= 50) {
+    const rd = distanceAlongRouteForPoint(lat, lon, routePoints, cumdist);
+    return { lat, lon, routeDist: rd };
+  }
+  // Pull back to exactly 50 m from the end node along the vector toward dragged point
+  const [lat0, lon0] = routePoints[0];
+  const [px, py]     = latlonToXY(lat, lon, lat0, lon0);
+  const [ex, ey]     = latlonToXY(endLat, endLon, lat0, lon0);
+  const dx = px - ex, dy = py - ey;
+  const len = Math.hypot(dx, dy);
+  const scale = 50 / len;
+  const [clampLat, clampLon] = xyToLatlon(ex + dx * scale, ey + dy * scale, lat0, lon0);
+  const rd = distanceAlongRouteForPoint(clampLat, clampLon, routePoints, cumdist);
+  return { lat: clampLat, lon: clampLon, routeDist: rd };
+}
+
+function updateMarkerPopups() {
+  stations.forEach(st => {
+    const marker = stationMarkers[st.id];
+    if (!marker) return;
+    marker.setIcon(makeStationIcon(st.lp));
+  });
+}
+
+function renderStationsTable() {
+  tbody.innerHTML = '';
+  const ordered = stations.slice().sort((a, b) => a.lp - b.lp);
+  for (const st of ordered) {
+    const tr = document.createElement('tr');
+    tr.dataset.stationId = String(st.id);
+
+    const tdLp = document.createElement('td');
+    tdLp.textContent = String(st.lp);
+    tr.appendChild(tdLp);
+
+    const tdDist = document.createElement('td');
+    tdDist.textContent = cumdist.length ? (st.routeDist / 1000.0).toFixed(2) + ' km' : '--';
+    tr.appendChild(tdDist);
+
+    tr.addEventListener('click', () => zoomToStation(st.id));
+    tbody.appendChild(tr);
+  }
+}
+
+function zoomToStation(id) {
+  const st = stations.find(s => s.id === id);
+  if (!st) return;
+  map.setView([st.lat, st.lon], Math.max(map.getZoom(), 15));
+}
+
+function initStationsFromRoute(stationPoints) {
+  clearStations();
+  if (!routePoints.length || !cumdist.length) return;
+
+  const total = cumdist[cumdist.length - 1];
+  stations = new Array(NUM_STATIONS);
+  let nextId = 0;
+
+  if (stationPoints && stationPoints.length) {
+    const slice = stationPoints.slice(0, NUM_STATIONS);
+    slice.forEach(sp => {
+      const rd = distanceAlongRouteForPoint(sp.lat, sp.lon, routePoints, cumdist);
+      const id = nextId++;
+      stations[id] = { id, lp: id + 1, lat: sp.lat, lon: sp.lon, routeDist: rd };
+    });
+  }
+
+  const remaining = NUM_STATIONS - nextId;
+  if (remaining > 0) {
+    if (!total || total <= 0) {
+      const base = routePoints[0] || [0, 0];
+      for (let i = 0; i < remaining; i++) {
+        const id = nextId + i;
+        stations[id] = { id, lp: id + 1, lat: base[0], lon: base[1], routeDist: 0 };
+      }
+    } else if (nextId === 0) {
+      for (let i = 0; i < NUM_STATIONS; i++) {
+        const target = total * (i / (NUM_STATIONS - 1));
+        const [lat, lon] = projectOnRoute(routePoints, cumdist, target);
+        stations[i] = { id: i, lp: i + 1, lat, lon, routeDist: target };
+      }
+      nextId = NUM_STATIONS;
+    } else {
+      for (let j = 0; j < remaining; j++) {
+        const target = total * ((j + 1) / (remaining + 1));
+        const [lat, lon] = projectOnRoute(routePoints, cumdist, target);
+        const id = nextId + j;
+        stations[id] = { id, lp: id + 1, lat, lon, routeDist: target };
+      }
+    }
+  }
+
+  for (let i = 0; i < NUM_STATIONS; i++) {
+    if (!stations[i]) {
+      const base = routePoints[0] || [0, 0];
+      stations[i] = { id: i, lp: i + 1, lat: base[0], lon: base[1], routeDist: 0 };
+    }
+  }
+
+  stations.forEach(st => {
+    if (st.routeDist == null) {
+      st.routeDist = distanceAlongRouteForPoint(st.lat, st.lon, routePoints, cumdist);
+    }
+  });
+  reorderStationsByDistance();
+
+  stationMarkers.forEach(m => map.removeLayer(m));
+  stationMarkers = new Array(NUM_STATIONS);
+
+  stations.forEach(st => {
+    const marker = L.marker([st.lat, st.lon], { draggable: true, icon: makeStationIcon(st.lp) }).addTo(map);
+    marker.stationId = st.id;
+    marker.on('dragend', (e) => {
+      const s = stations[marker.stationId];
+      const wasLast = s.lp === NUM_STATIONS;
+      const ctrlHeld = ctrlKeyHeld;
+      const ll = e.target.getLatLng();
+
+      let snapped;
+      if (SNAP_LAST_STATION_TO_END && wasLast) {
+        snapped = clampToEndNode(ll.lat, ll.lng);
+      } else {
+        snapped = snapPointToRouteWith50mRule(ll.lat, ll.lng, routePoints, cumdist);
+      }
+
+      // Guard: if this was the last station and it would rank ≤ 2 without Ctrl, revert.
+      if (wasLast && !ctrlHeld) {
+        const sortedDists = stations.map(st => st.routeDist).sort((a, b) => a - b);
+        const wouldBeRank = sortedDists.filter(d => d < snapped.routeDist).length + 1;
+        if (wouldBeRank <= 2) {
+          marker.setLatLng([s.lat, s.lon]);
+          return;
+        }
+      }
+
+      snapshotState();
+      s.lat = snapped.lat;
+      s.lon = snapped.lon;
+      s.routeDist = snapped.routeDist;
+      marker.setLatLng([snapped.lat, snapped.lon]);
+      reorderStationsByDistance();
+
+      // If the dragged station was lp=14 and is no longer (Ctrl was held),
+      // move the new lp=14 to the route end node.
+      if (SNAP_LAST_STATION_TO_END && wasLast && s.lp !== NUM_STATIONS) {
+        const newLast = stations.find(st => st.lp === NUM_STATIONS);
+        if (newLast) {
+          const [endLat, endLon] = routePoints[routePoints.length - 1];
+          newLast.lat = endLat;
+          newLast.lon = endLon;
+          newLast.routeDist = cumdist[cumdist.length - 1];
+          const m = stationMarkers[newLast.id];
+          if (m) m.setLatLng([endLat, endLon]);
+        }
+      }
+
+      renderStationsTable();
+      updateMarkerPopups();
+    });
+    stationMarkers[st.id] = marker;
+  });
+
+  snapLastStationToEnd();
+  updateMarkerPopups();  // sets icons with correct lp numbers
+  renderStationsTable();
+}
+
+// === File parsing ===
+function parseGpx(text) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'application/xml');
+  const pts = [];
+  const trkpts = xml.getElementsByTagName('trkpt');
+  for (let i = 0; i < trkpts.length; i++) {
+    const p = trkpts[i];
+    const lat = parseFloat(p.getAttribute('lat'));
+    const lon = parseFloat(p.getAttribute('lon'));
+    if (isNaN(lat) || isNaN(lon)) continue;
+    pts.push([lat, lon]);
+  }
+  return { points: pts };
+}
+
+function parseKml(text) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'application/xml');
+  const ns = 'http://www.opengis.net/kml/2.2';
+
+  const routePts = [];
+  const lineStrings = xml.getElementsByTagNameNS(ns, 'LineString');
+  if (lineStrings.length > 0) {
+    const coordsEl = lineStrings[0].getElementsByTagNameNS(ns, 'coordinates')[0];
+    if (coordsEl && coordsEl.textContent) {
+      const tokens = coordsEl.textContent.trim().split(/\s+/);
+      for (const token of tokens) {
+        const parts = token.split(',');
+        if (parts.length < 2) continue;
+        const lon = parseFloat(parts[0]);
+        const lat = parseFloat(parts[1]);
+        if (isNaN(lat) || isNaN(lon)) continue;
+        routePts.push([lat, lon]);
+      }
+    }
+  }
+
+  const stationPoints = [];
+  const placemarks = xml.getElementsByTagNameNS(ns, 'Placemark');
+  for (let i = 0; i < placemarks.length; i++) {
+    const pm = placemarks[i];
+    const pointEls = pm.getElementsByTagNameNS(ns, 'Point');
+    if (!pointEls.length) continue;
+    const coordEl = pointEls[0].getElementsByTagNameNS(ns, 'coordinates')[0];
+    if (!coordEl || !coordEl.textContent) continue;
+    const token = coordEl.textContent.trim().split(/\s+/)[0];
+    const parts = token.split(',');
+    if (parts.length < 2) continue;
+    const lon = parseFloat(parts[0]);
+    const lat = parseFloat(parts[1]);
+    if (isNaN(lat) || isNaN(lon)) continue;
+    stationPoints.push({ lat, lon });
+  }
+
+  return { routePoints: routePts, stationPoints };
+}
+
+// === Load file (shared between file input and drag-and-drop) ===
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    const name = file.name.toLowerCase();
+    let stationPoints = [];
+
+    if (name.endsWith('.gpx')) {
+      const { points } = parseGpx(text);
+      routePoints = points;
+      stationPoints = [];
+    } else if (name.endsWith('.kml')) {
+      const { routePoints: rpts, stationPoints: spts } = parseKml(text);
+      routePoints = rpts;
+      stationPoints = spts || [];
+    } else {
+      routePoints = [];
+      stationPoints = [];
+    }
+
+    clearVertexMarkers();
+    undoStack.length = 0;
+    undoBtn.disabled = true;
+
+    if (!routePoints.length) {
+      cumdist = [];
+      drawRouteOnMap();
+      updateStatsLabel();
+      clearStations();
+      exportBtn.disabled = true;
+      exportArrow.disabled = true;
+      reverseBtn.disabled = true;
+      return;
+    }
+
+    cumdist = cumulativeDistances(routePoints);
+    drawRouteOnMap();
+    updateStatsLabel();
+    initStationsFromRoute(stationPoints);
+    exportBtn.disabled = false;
+    exportArrow.disabled = false;
+    reverseBtn.disabled = false;
+  };
+  reader.readAsText(file);
+}
+
+// === Export KML ===
+function exportKml() {
+  if (!routePoints.length || !stations.length) return;
+  const orderedStations = stations.slice().sort((a, b) => a.lp - b.lp);
+
+  let kml = '';
+  kml += '<?xml version="1.0" encoding="UTF-8"?>\n';
+  kml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n';
+  kml += '  <Document>\n';
+  kml += '    <name>Export EDK Stacje</name>\n';
+  kml += '    <Style id="routeStyle">\n';
+  kml += '      <LineStyle>\n';
+  kml += '        <color>ff0000ff</color>\n';
+  kml += '        <width>4</width>\n';
+  kml += '      </LineStyle>\n';
+  kml += '    </Style>\n';
+  kml += '    <Placemark>\n';
+  kml += '      <name>Trasa</name>\n';
+  kml += '      <styleUrl>#routeStyle</styleUrl>\n';
+  kml += '      <LineString>\n';
+  kml += '        <tessellate>1</tessellate>\n';
+  kml += '        <coordinates>\n';
+  routePoints.forEach(pt => {
+    kml += `          ${pt[1]},${pt[0]},0\n`;
+  });
+  kml += '        </coordinates>\n';
+  kml += '      </LineString>\n';
+  kml += '    </Placemark>\n';
+
+  orderedStations.forEach(st => {
+    kml += '    <Placemark>\n';
+    kml += `      <name>${st.lp}</name>\n`;
+    kml += '      <Point>\n';
+    kml += `        <coordinates>${st.lon},${st.lat},0</coordinates>\n`;
+    kml += '      </Point>\n';
+    kml += '    </Placemark>\n';
+  });
+
+  kml += '  </Document>\n';
+  kml += '</kml>\n';
+
+  triggerDownload(kml, 'trasa_export.kml', 'application/vnd.google-earth.kml+xml');
+}
+
+// === Export GPX ===
+function exportGpx() {
+  if (!routePoints.length || !stations.length) return;
+  const orderedStations = stations.slice().sort((a, b) => a.lp - b.lp);
+
+  let gpx = '';
+  gpx += '<?xml version="1.0" encoding="UTF-8"?>\n';
+  gpx += '<gpx version="1.1" creator="EDK Edycja Trasy"\n';
+  gpx += '     xmlns="http://www.topografix.com/GPX/1/1">\n';
+  gpx += '  <trk>\n';
+  gpx += '    <name>Trasa</name>\n';
+  gpx += '    <trkseg>\n';
+  routePoints.forEach(pt => {
+    gpx += `      <trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
+  });
+  gpx += '    </trkseg>\n';
+  gpx += '  </trk>\n';
+
+  orderedStations.forEach(st => {
+    gpx += `  <wpt lat="${st.lat}" lon="${st.lon}">\n`;
+    gpx += `    <name>${t('wptName', st.lp)}</name>\n`;
+    gpx += '  </wpt>\n';
+  });
+
+  gpx += '</gpx>\n';
+
+  triggerDownload(gpx, 'trasa_export.gpx', 'application/gpx+xml');
+}
+
+function triggerDownload(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// === Reverse route ===
+function reverseRoute() {
+  if (!routePoints.length) return;
+  snapshotState();
+  routePoints.reverse();
+  recomputeAfterRouteChange();
+  drawRouteOnMap(true);
+}
+
+// === Confirmation modal ===
+function showConfirm(msg, onOk) {
+  const overlay = document.getElementById('confirmOverlay');
+  const msgEl   = document.getElementById('confirmMsg');
+  const okBtn   = document.getElementById('confirmOk');
+  const cancelBtn = document.getElementById('confirmCancel');
+
+  msgEl.textContent = msg;
+  overlay.hidden = false;
+
+  function cleanup() {
+    overlay.hidden = true;
+    okBtn.removeEventListener('click', onYes);
+    cancelBtn.removeEventListener('click', onNo);
+  }
+  function onYes() { cleanup(); onOk(); }
+  function onNo()  { cleanup(); }
+
+  okBtn.addEventListener('click', onYes);
+  cancelBtn.addEventListener('click', onNo);
+}
+
+// === Event listeners ===
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  loadFile(file);
+  // Reset input so the same file can be re-selected
+  fileInput.value = '';
+});
+
+editRouteCheckbox.addEventListener('change', (e) => {
+  routeEditingEnabled = e.target.checked;
+  if (routeEditingEnabled) {
+    rebuildVertexMarkers();
+  } else {
+    clearVertexMarkers();
+  }
+});
+
+undoBtn.addEventListener('click', performUndo);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Control' || e.key === 'Meta') ctrlKeyHeld = true;
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault();
+    performUndo();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.key === 'Control' || e.key === 'Meta') ctrlKeyHeld = false;
+});
+
+window.addEventListener('blur', () => { ctrlKeyHeld = false; });
+
+reverseBtn.addEventListener('click', reverseRoute);
+
+exportBtn.addEventListener('click', () => {
+  if (selectedExportFormat === 'gpx') {
+    exportGpx();
+  } else {
+    exportKml();
+  }
+});
+
+// Split-button arrow toggle
+exportArrow.addEventListener('click', (e) => {
+  e.stopPropagation();
+  exportMenu.hidden = !exportMenu.hidden;
+});
+
+// Format selection — stopPropagation fixes the "doesn't close on pick" bug
+document.querySelectorAll('#exportMenu [data-format]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectedExportFormat = btn.dataset.format;
+    exportBtn.textContent = t(selectedExportFormat === 'gpx' ? 'exportBtnGpx' : 'exportBtnKml');
+    exportMenu.hidden = true;
+  });
+});
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('exportGroup').contains(e.target)) {
+    exportMenu.hidden = true;
+  }
+});
+
+// === Drag-and-drop ===
+document.body.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  mapDiv.classList.add('drag-over');
+});
+
+document.body.addEventListener('dragleave', (e) => {
+  // Only remove if leaving the body entirely
+  if (!e.relatedTarget || e.relatedTarget === document.documentElement) {
+    mapDiv.classList.remove('drag-over');
+  }
+});
+
+document.body.addEventListener('drop', (e) => {
+  e.preventDefault();
+  mapDiv.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (routePoints.length) {
+    showConfirm(t('confirmReplace'), () => loadFile(file));
+  } else {
+    loadFile(file);
+  }
+});
+
+// === Language picker ===
+const langSelect = document.getElementById('langSelect');
+langSelect.value = currentLang;
+langSelect.addEventListener('change', (e) => {
+  currentLang = e.target.value;
+  localStorage.setItem('edkLang', currentLang);
+  applyLanguage();
+});
+
+// Apply default language on load
+applyLanguage();
+</script>
+</body>
+</html>
