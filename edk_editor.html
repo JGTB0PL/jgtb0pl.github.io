@@ -314,7 +314,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// === EDK Edycja Trasy v2.2.0 ===
+// === EDK Edycja Trasy v2.3.0 ===
 
 // === Config ===
 // Set to true to force the last station (lp=14) to stay within 50 m of the route end.
@@ -533,24 +533,65 @@ let ctrlKeyHeld = false;
 
 // === Undo history ===
 const MAX_UNDO = 50;
+const VERTEX_MIN_ZOOM = 14;
 const undoStack = [];
 
+function _pushSnap(entry) {
+  undoStack.push(entry);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  undoBtn.disabled = false;
+}
+
+// Full snapshot — used for first-click and auto-merge drags
 function snapshotState() {
-  undoStack.push({
+  _pushSnap({
+    type: 'full',
     routePoints: routePoints.map(p => [p[0], p[1]]),
     stations: stations.map(s => ({ ...s }))
   });
-  if (undoStack.length > MAX_UNDO) undoStack.shift();
-  undoBtn.disabled = false;
+}
+
+// Single vertex moved — stores old coordinate only (~750 B vs ~250 KB)
+function snapshotMove(idx) {
+  _pushSnap({ type: 'move', idx, point: [routePoints[idx][0], routePoints[idx][1]],
+               stations: stations.map(s => ({ ...s })) });
+}
+
+// Vertex about to be deleted — undo = re-insert
+function snapshotVertexDelete(idx) {
+  _pushSnap({ type: 'insert', idx, point: [routePoints[idx][0], routePoints[idx][1]],
+               stations: stations.map(s => ({ ...s })) });
+}
+
+// Point about to be inserted — undo = delete at same idx
+function snapshotInsert(idx) {
+  _pushSnap({ type: 'delete', idx, stations: stations.map(s => ({ ...s })) });
+}
+
+// Route about to be reversed — undo = reverse again
+function snapshotReverse() {
+  _pushSnap({ type: 'reverse', stations: stations.map(s => ({ ...s })) });
+}
+
+// Stations changed, no route geometry change
+function snapshotStations() {
+  _pushSnap({ type: 'stations', stations: stations.map(s => ({ ...s })) });
 }
 
 function performUndo() {
   if (!undoStack.length) return;
   const snap = undoStack.pop();
-  routePoints = snap.routePoints;
 
-  // Restore station positions/order
-  if (snap.stations.length && stations.length) {
+  switch (snap.type) {
+    case 'move':    routePoints[snap.idx] = snap.point; break;
+    case 'insert':  routePoints.splice(snap.idx, 0, snap.point); break;
+    case 'delete':  routePoints.splice(snap.idx, 1); break;
+    case 'reverse': routePoints.reverse(); break;
+    case 'stations': break;
+    default:        routePoints = snap.routePoints; // 'full' + backward compat
+  }
+
+  if (snap.stations?.length && stations.length) {
     snap.stations.forEach(ss => {
       const s = stations.find(x => x.id === ss.id);
       if (s) { s.lat = ss.lat; s.lon = ss.lon; s.routeDist = ss.routeDist; s.lp = ss.lp; }
@@ -728,17 +769,22 @@ function clearVertexMarkers() {
 function rebuildVertexMarkers() {
   clearVertexMarkers();
   if (!routePoints.length) return;
+  if (map.getZoom() < VERTEX_MIN_ZOOM) return;
+  const bounds = map.getBounds().pad(0.2);
   routePoints.forEach((pt, idx) => {
     const [lat, lon] = pt;
+    if (!bounds.contains([lat, lon])) return;
     const m = L.marker([lat, lon], { draggable: true, icon: vertexIcon, zIndexOffset: 1000 }).addTo(map);
     m.vertexIndex = idx;
+    m.on('dragstart', onVertexDragStart);
+    m.on('drag', onVertexDragMove);
     m.on('dragend', onVertexDragged);
     m.on('click', (e) => {
       if (!e.originalEvent.altKey) return;
       if (routePoints.length <= 2) return;
       const i = m.vertexIndex;
       if (i == null || i < 0 || i >= routePoints.length) return;
-      snapshotState();
+      snapshotVertexDelete(i);
       routePoints.splice(i, 1);
       recomputeAfterRouteChange();
       rebuildVertexMarkers();
@@ -747,12 +793,33 @@ function rebuildVertexMarkers() {
   });
 }
 
+function onVertexDragStart(e) {
+  const idx = e.target.vertexIndex;
+  if (idx == null || idx < 0 || idx >= routePoints.length) return;
+  e.target._origPoint = [routePoints[idx][0], routePoints[idx][1]];
+}
+
+function onVertexDragMove(e) {
+  const idx = e.target.vertexIndex;
+  if (idx == null || idx < 0 || idx >= routePoints.length) return;
+  if (!routeLine) return;
+  const ll = e.target.getLatLng();
+  routePoints[idx] = [ll.lat, ll.lng];
+  routeLine.setLatLngs(routePoints);
+}
+
 function onVertexDragged(e) {
   const m = e.target;
   let idx = m.vertexIndex;
   if (idx == null || idx < 0 || idx >= routePoints.length) return;
-  snapshotState();
   const ll = m.getLatLng();
+  // Restore original before snapshotting so the snapshot captures the pre-drag state
+  if (m._origPoint) routePoints[idx] = m._origPoint;
+  const willMerge = routePoints.length > 2 && (
+    (idx > 0 && haversine(ll.lat, ll.lng, routePoints[idx-1][0], routePoints[idx-1][1]) < 1.0) ||
+    (idx < routePoints.length - 1 && haversine(ll.lat, ll.lng, routePoints[idx+1][0], routePoints[idx+1][1]) < 1.0)
+  );
+  willMerge ? snapshotState() : snapshotMove(idx);
   routePoints[idx] = [ll.lat, ll.lng];
 
   const mergeThreshold = 1.0;
@@ -813,7 +880,7 @@ function onRouteClick(e) {
   }
 
   if (bestInsert) {
-    snapshotState();
+    snapshotInsert(bestInsert.idx);
     routePoints.splice(bestInsert.idx, 0, [bestInsert.lat, bestInsert.lon]);
     recomputeAfterRouteChange();
     rebuildVertexMarkers();
@@ -1034,7 +1101,7 @@ function initStationsFromRoute(stationPoints) {
         }
       }
 
-      snapshotState();
+      snapshotStations();
       s.lat = snapped.lat;
       s.lon = snapped.lon;
       s.routeDist = snapped.routeDist;
@@ -1155,8 +1222,11 @@ function loadFile(file) {
     }
 
     clearVertexMarkers();
+    map.off('moveend zoomend', rebuildVertexMarkers);
     undoStack.length = 0;
     undoBtn.disabled = true;
+    routeEditingEnabled = false;
+    editRouteCheckbox.checked = false;
 
     if (routePoints.length < 2) {
       cumdist = [];
@@ -1272,7 +1342,7 @@ function triggerDownload(content, filename, mimeType) {
 // === Reverse route ===
 function reverseRoute() {
   if (!routePoints.length) return;
-  snapshotState();
+  snapshotReverse();
   routePoints.reverse();
   recomputeAfterRouteChange();
   drawRouteOnMap(true);
@@ -1303,24 +1373,63 @@ function showConfirm(msg, onOk) {
 // === Session persistence ===
 const SESSION_KEY = 'edkSession';
 
+const SESSION_QUOTA = 5 * 1024 * 1024 / 2; // 5 MB — localStorage measures in UTF-16 code units (2 bytes each)
+
+function buildSessionPayload(stack) {
+  return JSON.stringify({
+    routePoints,
+    stations: stations.map(s => ({ id: s.id, lp: s.lp, lat: s.lat, lon: s.lon, routeDist: s.routeDist })),
+    mapLat:  map.getCenter().lat,
+    mapLng:  map.getCenter().lng,
+    mapZoom: map.getZoom(),
+    routeEditing: routeEditingEnabled,
+    undoStack: stack,
+  });
+}
+
 function saveSession() {
   if (routePoints.length < 2) {
     localStorage.removeItem(SESSION_KEY);
     return;
   }
-  const center = map.getCenter();
+  let payload = buildSessionPayload(undoStack);
+  if (payload.length > SESSION_QUOTA) payload = buildSessionPayload(undoStack.slice(-10));
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
-      routePoints,
-      stations: stations.map(s => ({ id: s.id, lp: s.lp, lat: s.lat, lon: s.lon, routeDist: s.routeDist })),
-      mapLat:  center.lat,
-      mapLng:  center.lng,
-      mapZoom: map.getZoom(),
-    }));
+    localStorage.setItem(SESSION_KEY, payload);
   } catch (e) {
-    // Quota exceeded — silently ignore
+    // Still over quota (e.g. route itself is huge) — silently ignore
   }
 }
+
+window.debugSession = function () {
+  const keys = Object.keys(localStorage);
+  const sizes = keys.map(k => ({ key: k, bytes: (localStorage.getItem(k) || '').length * 2 }));
+  const total = sizes.reduce((s, e) => s + e.bytes, 0);
+
+  console.group('localStorage usage');
+  sizes.sort((a, b) => b.bytes - a.bytes).forEach(({ key, bytes }) =>
+    console.log(`  ${key}: ${(bytes / 1024).toFixed(1)} KB`)
+  );
+  console.log(`  ─────────────────`);
+  console.log(`  Total: ${(total / 1024).toFixed(1)} KB / 5 MB browser limit`);
+  console.groupEnd();
+
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) { console.log('No session saved.'); return; }
+  try {
+    const s = JSON.parse(raw);
+    console.group(`${SESSION_KEY} breakdown`);
+    console.log(`  routePoints:  ${(s.routePoints || []).length} pts`);
+    console.log(`  stations:     ${(s.stations || []).length}`);
+    console.log(`  undoStack:    ${(s.undoStack || []).length} entries (in-memory: ${undoStack.length})`);
+    console.log(`  mapView:      [${s.mapLat?.toFixed(5)}, ${s.mapLng?.toFixed(5)}] z${s.mapZoom}`);
+    console.log(`  routeEditing: ${s.routeEditing}`);
+    console.log(`  payload size: ${(raw.length * 2 / 1024).toFixed(1)} KB`);
+    console.groupEnd();
+  } catch (e) {
+    console.warn('Could not parse session:', e);
+  }
+};
 
 function restoreSession() {
   const raw = localStorage.getItem(SESSION_KEY);
@@ -1353,6 +1462,18 @@ function restoreSession() {
   if (session.mapLat != null && session.mapLng != null && session.mapZoom != null) {
     map.setView([session.mapLat, session.mapLng], session.mapZoom);
   }
+
+  if (Array.isArray(session.undoStack) && session.undoStack.length) {
+    undoStack.push(...session.undoStack);
+    undoBtn.disabled = false;
+  }
+
+  if (session.routeEditing) {
+    routeEditingEnabled = true;
+    editRouteCheckbox.checked = true;
+    rebuildVertexMarkers();
+    map.on('moveend zoomend', rebuildVertexMarkers);
+  }
 }
 
 // === Event listeners ===
@@ -1368,8 +1489,10 @@ editRouteCheckbox.addEventListener('change', (e) => {
   routeEditingEnabled = e.target.checked;
   if (routeEditingEnabled) {
     rebuildVertexMarkers();
+    map.on('moveend zoomend', rebuildVertexMarkers);
   } else {
     clearVertexMarkers();
+    map.off('moveend zoomend', rebuildVertexMarkers);
   }
 });
 
