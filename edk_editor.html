@@ -1300,6 +1300,61 @@ function showConfirm(msg, onOk) {
   cancelBtn.addEventListener('click', onNo);
 }
 
+// === Session persistence ===
+const SESSION_KEY = 'edkSession';
+
+function saveSession() {
+  if (routePoints.length < 2) {
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+  const center = map.getCenter();
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      routePoints,
+      stations: stations.map(s => ({ id: s.id, lp: s.lp, lat: s.lat, lon: s.lon, routeDist: s.routeDist })),
+      mapLat:  center.lat,
+      mapLng:  center.lng,
+      mapZoom: map.getZoom(),
+    }));
+  } catch (e) {
+    // Quota exceeded — silently ignore
+  }
+}
+
+function restoreSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return;
+  let session;
+  try { session = JSON.parse(raw); } catch (e) {
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+  if (!session.routePoints || session.routePoints.length < 2) {
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+
+  routePoints = session.routePoints;
+  cumdist = cumulativeDistances(routePoints);
+  drawRouteOnMap(true);
+  updateStatsLabel();
+
+  const stationPoints = (session.stations || [])
+    .slice()
+    .sort((a, b) => a.lp - b.lp)
+    .map(s => ({ lat: s.lat, lon: s.lon }));
+  initStationsFromRoute(stationPoints);
+
+  exportBtn.disabled  = false;
+  exportArrow.disabled = false;
+  reverseBtn.disabled = false;
+
+  if (session.mapLat != null && session.mapLng != null && session.mapZoom != null) {
+    map.setView([session.mapLat, session.mapLng], session.mapZoom);
+  }
+}
+
 // === Event listeners ===
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
@@ -1403,6 +1458,14 @@ langSelect.addEventListener('change', (e) => {
 
 // Apply default language on load
 applyLanguage();
+
+// Save on refresh/close (synchronous localStorage write is reliable in beforeunload)
+window.addEventListener('beforeunload', saveSession);
+// Periodic backup every 15 s in case the tab is killed without beforeunload firing
+setInterval(saveSession, 15000);
+
+// Restore previous session (runs after map, tiles and language are ready)
+restoreSession();
 </script>
 </body>
 </html>
