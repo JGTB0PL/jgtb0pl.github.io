@@ -1079,7 +1079,16 @@ function parseGpx(text) {
     if (isNaN(lat) || isNaN(lon)) continue;
     pts.push([lat, lon]);
   }
-  return { points: pts };
+  const stationPoints = [];
+  const wpts = xml.getElementsByTagName('wpt');
+  for (let i = 0; i < wpts.length; i++) {
+    const w = wpts[i];
+    const lat = parseFloat(w.getAttribute('lat'));
+    const lon = parseFloat(w.getAttribute('lon'));
+    if (isNaN(lat) || isNaN(lon)) continue;
+    stationPoints.push({ lat, lon });
+  }
+  return { points: pts, stationPoints };
 }
 
 function parseKml(text) {
@@ -1133,9 +1142,9 @@ function loadFile(file) {
     let stationPoints = [];
 
     if (name.endsWith('.gpx')) {
-      const { points } = parseGpx(text);
+      const { points, stationPoints: spts } = parseGpx(text);
       routePoints = points;
-      stationPoints = [];
+      stationPoints = spts;
     } else if (name.endsWith('.kml')) {
       const { routePoints: rpts, stationPoints: spts } = parseKml(text);
       routePoints = rpts;
@@ -1149,7 +1158,7 @@ function loadFile(file) {
     undoStack.length = 0;
     undoBtn.disabled = true;
 
-    if (!routePoints.length) {
+    if (routePoints.length < 2) {
       cumdist = [];
       drawRouteOnMap();
       updateStatsLabel();
@@ -1223,21 +1232,25 @@ function exportGpx() {
   let gpx = '';
   gpx += '<?xml version="1.0" encoding="UTF-8"?>\n';
   gpx += '<gpx version="1.1" creator="EDK Edycja Trasy"\n';
-  gpx += '     xmlns="http://www.topografix.com/GPX/1/1">\n';
-  gpx += '  <trk>\n';
-  gpx += '    <name>Trasa</name>\n';
-  gpx += '    <trkseg>\n';
-  routePoints.forEach(pt => {
-    gpx += `      <trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
-  });
-  gpx += '    </trkseg>\n';
-  gpx += '  </trk>\n';
+  gpx += '     xmlns="http://www.topografix.com/GPX/1/1"\n';
+  gpx += '     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n';
+  gpx += '     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n';
 
+  // GPX 1.1 schema order: wpt* before trk*
   orderedStations.forEach(st => {
     gpx += `  <wpt lat="${st.lat}" lon="${st.lon}">\n`;
     gpx += `    <name>${t('wptName', st.lp)}</name>\n`;
     gpx += '  </wpt>\n';
   });
+
+  gpx += '  <trk>\n';
+  gpx += '    <name>Trasa</name>\n';
+  gpx += '    <trkseg>\n';
+  routePoints.forEach(pt => {
+    gpx += `      <trkpt lat="${pt[0]}" lon="${pt[1]}"/>\n`;
+  });
+  gpx += '    </trkseg>\n';
+  gpx += '  </trk>\n';
 
   gpx += '</gpx>\n';
 
